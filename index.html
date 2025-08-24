@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VaaniLink</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wa-header-bg: #005c97; /* A deep, rich blue */
+            --wa-accent-blue: #34B7F1; /* A vibrant, modern blue for accents */
+            --wa-message-out-bg: #e1f6fb; /* A very light blue for sent messages */
+            --wa-message-in-bg: #ffffff;
+            --wa-app-bg: #f0f2f5; /* Light grey background, common in modern apps */
+            --wa-chat-bg: #e5ddd5; /* Classic WhatsApp pattern background color */
+            --wa-icon-color: #f0f2f5;
+            --wa-text-primary: #111b21;
+            --wa-text-secondary: #667781;
+            --wa-border-color: #e9edef;
+            --wa-active-tab-indicator: var(--wa-accent-blue);
+            --wa-button-color: #008069; /* Kept a green shade for buttons for familiarity */
+            --wa-link-color: #00a8e8;
+            --wa-shadow: rgba(17, 27, 33, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #d1d7db; /* The grey area outside the app */
+        }
+
+        body {
+            color: var(--wa-text-primary);
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+        
+        /* --- General UI Elements --- */
+        .icon-btn {
+            background: none; border: none; color: var(--wa-icon-color);
+            cursor: pointer; padding: 8px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .icon-btn:hover { background-color: rgba(255,255,255,0.1); }
+        .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        #app-container {
+            width: 100%; height: 100%; max-width: 450px; max-height: 950px;
+            background-color: var(--wa-app-bg);
+            box-shadow: 0 12px 28px 0 var(--wa-shadow);
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            border-radius: 8px; /* Slight rounding for a modern feel */
+        }
+
+        .view {
+            width: 100%; height: 100%; display: flex;
+            flex-direction: column; align-items: center;
+            background-color: var(--wa-message-in-bg);
+        }
+
+        /* --- Loader and Network Status --- */
+        #loader {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.8); z-index: 100;
+            display: none; justify-content: center; align-items: center;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px; height: 36px; border-radius: 50%;
+            border-left-color: var(--wa-header-bg);
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #network-status {
+            position: absolute; top: 0; left: 0; width: 100%;
+            background-color: #d93025; color: white; text-align: center;
+            padding: 5px; font-size: 14px; z-index: 101;
+            display: none;
+        }
+
+        /* --- Auth View --- */
+        #auth-view {
+            justify-content: center; padding: 40px 20px;
+        }
+        .app-title {
+            font-size: 36px; font-weight: 700; color: var(--wa-header-bg);
+            margin-bottom: 40px; text-align: center;
+        }
+        .auth-form {
+            width: 100%; max-width: 350px; display: flex;
+            flex-direction: column; gap: 16px;
+        }
+        .google-btn {
+            border-radius: 8px; background-color: #4285f4;
+            color: white; font-weight: 500; font-family: 'Roboto', sans-serif;
+            font-size: 16px; border: none; padding: 14px; cursor: pointer;
+            width: 100%; transition: background-color 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px;
+        }
+        .google-btn:hover { background-color: #3367d6; }
+        .google-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .error-message { color: #d93025; font-size: 13px; text-align: center; min-height: 20px; }
+
+        /* --- Username Setup View --- */
+        #username-setup-view {
+            justify-content: center; padding: 40px 20px;
+        }
+        .setup-form {
+            width: 100%; max-width: 350px; display: flex;
+            flex-direction: column; gap: 16px;
+        }
+        .setup-form input {
+            border-radius: 8px; border: 1px solid #ccc; background-color: #fff;
+            color: var(--wa-text-primary); padding: 14px;
+            font-family: 'Roboto', sans-serif; font-size: 16px; width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .setup-form input:focus {
+            outline: none; border-color: var(--wa-header-bg);
+            box-shadow: 0 0 0 2px rgba(0, 92, 151, 0.2);
+        }
+        .setup-form button {
+            border-radius: 8px; background-color: var(--wa-header-bg);
+            color: white; font-weight: 500; font-family: 'Roboto', sans-serif;
+            font-size: 16px; border: none; padding: 14px; cursor: pointer;
+            width: 100%; transition: background-color 0.2s;
+        }
+        .setup-form button:hover { background-color: #004c7a; }
+        .setup-form button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .username-status {
+            font-size: 12px; margin-top: -10px; min-height: 16px;
+        }
+        .username-available { color: #4CAF50; }
+        .username-taken { color: #d93025; }
+        .profile-preview {
+            background-color: var(--wa-app-bg); border-radius: 12px;
+            padding: 20px; text-align: center; margin-bottom: 20px;
+        }
+        .profile-preview img {
+            width: 80px; height: 80px; border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        /* --- Main View --- */
+        #main-view { display: none; }
+        header.main-header {
+            width: 100%; background-color: var(--wa-header-bg);
+            padding: 10px 15px 0; flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .header-title {
+            font-size: 20px; font-weight: 500; color: var(--wa-icon-color);
+        }
+        .header-actions { display: flex; gap: 10px; }
+        .header-nav { display: flex; justify-content: space-around; margin-top: 15px; }
+        .nav-tab {
+            background: none; border: none; color: rgba(255, 255, 255, 0.7);
+            font-family: 'Roboto', sans-serif; font-size: 14px; font-weight: 700;
+            cursor: pointer; padding: 12px 16px; flex-grow: 1;
+            border-bottom: 3px solid transparent; transition: color 0.2s, border-color 0.2s;
+            position: relative; text-transform: uppercase;
+        }
+        .nav-tab.active {
+            color: var(--wa-active-tab-indicator);
+            border-bottom-color: var(--wa-active-tab-indicator);
+        }
+        .badge {
+            position: absolute; top: 8px; right: 15%;
+            background-color: var(--wa-active-tab-indicator);
+            color: white; border-radius: 10px; font-size: 11px;
+            padding: 2px 6px; font-weight: 500;
+            display: none;
+        }
+        main {
+            width: 100%; flex-grow: 1; overflow-y: auto; background-color: #fff;
+        }
+        .content-panel { display: none; }
+        .content-panel.active { display: block; }
+
+        /* --- Search Bar --- */
+        .search-container {
+            padding: 15px; background-color: var(--wa-app-bg);
+            border-bottom: 1px solid var(--wa-border-color);
+        }
+        .search-input {
+            width: 100%; padding: 12px 18px; border: 1px solid #ccc;
+            border-radius: 22px; font-family: 'Roboto', sans-serif;
+            font-size: 15px; background-color: #fff;
+        }
+        .search-input:focus {
+            outline: none; border-color: var(--wa-header-bg);
+        }
+        .search-results {
+            max-height: 200px; overflow-y: auto;
+            border-top: 1px solid var(--wa-border-color);
+        }
+
+        .list-item {
+            display: flex; align-items: center; padding: 10px 15px;
+            cursor: pointer; background-color: #fff;
+            border-bottom: 1px solid var(--wa-border-color);
+            transition: background-color 0.2s;
+        }
+        .list-item:hover { background-color: var(--wa-app-bg); }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            margin-right: 15px; object-fit: cover;
+        }
+        .list-item-emoji {
+            font-size: 24px; margin-right: 15px; width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            background-color: #e9edef; border-radius: 50%;
+        }
+        .list-item-details { flex-grow: 1; overflow: hidden; }
+        .list-item-name { 
+            font-weight: 500; font-size: 17px; margin-bottom: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .list-item-subtext {
+            font-size: 14px; color: var(--wa-text-secondary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .list-item-actions { display: flex; gap: 10px; align-items: center; }
+        .list-item-actions button {
+            background-color: var(--wa-accent-blue);
+            color: white; border: none; padding: 8px 12px; border-radius: 8px;
+            cursor: pointer; font-size: 13px; font-weight: 500;
+        }
+        .list-item-actions button.reject { background-color: var(--wa-text-secondary); }
+
+        /* --- Chat View --- */
+        #chat-view {
+            display: none; position: absolute;
+            top: 0; left: 0; z-index: 10;
+            background-color: var(--wa-chat-bg);
+            /* Subtle background pattern */
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23bdbdbd' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        header.chat-header {
+            width: 100%; padding: 8px 10px; display: flex; align-items: center;
+            gap: 10px; background-color: var(--wa-header-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; z-index: 1;
+        }
+        header.chat-header .icon-btn { color: var(--wa-icon-color); }
+        #chat-header-info { text-align: left; flex-grow:1; color: var(--wa-icon-color); }
+        #chat-header-avatar { 
+            width: 40px; height: 40px; border-radius: 50%; object-fit: cover; 
+        }
+        #chat-header-emoji { width:40px; height: 40px; font-size: 22px; background-color: #ccc; }
+        #chat-header-name { font-weight: 500; font-size: 17px; }
+        .chat-header-actions { display:flex; align-items: center; gap: 5px; }
+
+        #chat-messages {
+            flex-grow: 1; width: 100%; padding: 12px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 3px;
+        }
+        .message-bubble {
+            max-width: 80%; padding: 8px 12px; border-radius: 8px;
+            margin-bottom: 2px; word-wrap: break-word; line-height: 1.4;
+            box-shadow: 0 1px 1px var(--wa-shadow);
+            position: relative;
+        }
+        .message-sent {
+            background-color: var(--wa-message-out-bg); align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .message-received {
+            background-color: var(--wa-message-in-bg); align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        #chat-input-container {
+            width: 100%; padding: 8px 12px; display: flex; gap: 10px;
+            background-color: var(--wa-app-bg); align-items: flex-end;
+        }
+        #chat-input {
+            flex-grow: 1; border: none; background-color: #fff;
+            color: var(--wa-text-primary); padding: 12px 18px;
+            border-radius: 22px; font-family: 'Roboto', sans-serif;
+            font-size: 15px; max-height: 100px; resize: none;
+        }
+        #chat-input:focus { outline: none; }
+        #chat-send-btn {
+            background: var(--wa-accent-blue); border: none; color: white;
+            width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-bottom: 2px;
+            transition: background-color 0.2s;
+        }
+        #chat-send-btn:hover { background-color: #2aa3e0; }
+        #chat-send-btn svg { width: 24px; height: 24px; fill: white; margin-left: 2px; }
+
+        /* --- Call Views --- */
+        .call-view {
+            display: none; position: absolute; top: 0; left: 0; z-index: 20;
+            background-color: #222; justify-content: center; align-items: center;
+        }
+        #video-call-view { background-color: black; }
+        #remote-video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        #local-video {
+            width: 100px; height: 140px; position: absolute; bottom: 120px; right: 20px;
+            border: 2px solid rgba(255,255,255,0.5); border-radius: 10px;
+            cursor: move; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .call-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+            align-items: center; padding: 60px 20px 50px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent 40%, transparent 60%, rgba(0,0,0,0.7));
+        }
+        .caller-info { text-align: center; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .caller-info .emoji { font-size: 80px; }
+        .caller-info .avatar { 
+            width: 80px; height: 80px; border-radius: 50%; 
+            border: 3px solid white; object-fit: cover; 
+        }
+        .caller-info .name { font-size: 28px; font-weight: 500; margin-top: 10px; }
+        .caller-info .status { font-size: 16px; color: #ccc; margin-top: 5px; }
+        .call-controls { display: flex; gap: 30px; }
+        .call-controls button {
+            width: 70px; height: 70px; border-radius: 50%; border: none;
+            color: white; font-family: 'Roboto', sans-serif; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .end-call-btn { background-color: #e91e63; }
+        .accept-call-btn { background-color: #4CAF50; }
+
+        /* --- Modals --- */
+        .modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%;
+            height: 100%; background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center; align-items: center; z-index: 30;
+        }
+        .modal-content {
+            background-color: #fff; padding: 25px; border-radius: 12px;
+            width: 90%; max-width: 400px; display: flex; flex-direction: column;
+            gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .modal-content h2 { text-align: center; color: var(--wa-header-bg); font-weight: 500; }
+        .modal-content input {
+            border-radius: 8px; border: 1px solid #ccc; background-color: var(--wa-app-bg);
+            color: var(--wa-text-primary); padding: 12px 15px; font-family: 'Roboto', sans-serif;
+            font-size: 16px; width: 100%;
+        }
+        .modal-content button {
+            border-radius: 8px; background-color: var(--wa-header-bg);
+            color: white; font-weight: 500; font-family: 'Roboto', sans-serif;
+            font-size: 16px; border: none; padding: 12px 20px; cursor: pointer; width: 100%;
+        }
+        .modal-content button.secondary { background-color: var(--wa-text-secondary); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+        #incoming-call-modal .caller-info { color: var(--wa-text-primary); text-shadow: none; padding-bottom: 20px; }
+        #profile-info-display p { padding: 5px 0; font-size: 16px; }
+        #profile-info-display strong { color: var(--wa-header-bg); font-weight: 500; }
+        #blocked-users-list .list-item { background-color: transparent; }
+        #blocked-users-list .list-item-actions button {
+            background-color: var(--wa-accent-blue); font-size: 12px; padding: 6px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div id="loader"><div class="spinner"></div></div>
+        <div id="network-status">You are offline. Reconnecting...</div>
+        
+        <!-- Auth View -->
+        <div id="auth-view" class="view">
+            <h1 class="app-title">VaaniLink</h1>
+            <div class="auth-form">
+                <div id="auth-error" class="error-message"></div>
+                <button id="google-login-btn" class="google-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </button>
+            </div>
+        </div>
+
+        <!-- Username Setup View -->
+        <div id="username-setup-view" class="view" style="display: none;">
+            <h1 class="app-title">Setup Your Profile</h1>
+            <div class="profile-preview">
+                <img id="preview-avatar" src="" alt="Your avatar">
+                <p id="preview-email"></p>
+            </div>
+            <form id="setup-form" class="setup-form">
+                <div id="username-error" class="error-message"></div>
+                <input type="text" id="username-input" placeholder="Choose a username" maxlength="20" required>
+                <div id="username-status" class="username-status"></div>
+                <input type="text" id="display-name-input" placeholder="Display Name" required>
+                <input type="text" id="emoji-input" placeholder="Emoji (e.g., 😊)" maxlength="2" required>
+                <button type="button" id="check-username-btn">Check Availability</button>
+                <button type="submit" id="create-profile-btn" disabled>Create Profile</button>
+            </form>
+        </div>
+
+        <!-- Main App View -->
+        <div id="main-view" class="view">
+            <header class="main-header">
+                <div class="header-top">
+                    <span class="header-title">VaaniLink</span>
+                    <div class="header-actions">
+                        <button id="search-users-btn" class="icon-btn" title="Search Users">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
+                        <button id="menu-btn" class="icon-btn" title="Profile & Settings">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <nav class="header-nav">
+                    <button id="nav-home" class="nav-tab active">Chats <span id="home-badge" class="badge"></span></button>
+                    <button id="nav-notifications" class="nav-tab">Updates <span id="notifications-badge" class="badge"></span></button>
+                    <button id="nav-calls" class="nav-tab">Calls</button>
+                </nav>
+            </header>
+            <main id="main-content">
+                <div id="home-content" class="content-panel active"><div id="contact-list"></div></div>
+                <div id="notifications-content" class="content-panel"><div id="notification-list"></div></div>
+                <div id="calls-content" class="content-panel"><div id="call-log-list"></div></div>
+            </main>
+        </div>
+        
+        <!-- Chat View -->
+        <div id="chat-view" class="view">
+            <header class="chat-header">
+                <button id="back-to-main-btn" class="icon-btn">
+                     <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <img id="chat-header-avatar" class="list-item-avatar" src="" alt="Avatar" style="display: none;">
+                <div id="chat-header-emoji" class="list-item-emoji"></div>
+                <div id="chat-header-info">
+                    <span id="chat-header-name"></span>
+                </div>
+                <div class="chat-header-actions">
+                  <button id="voice-call-btn" class="icon-btn" title="Voice Call">
+                    <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                  </button>
+                  <button id="video-call-btn" class="icon-btn" title="Video Call">
+                    <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                  </button>
+                  <button id="chat-more-btn" class="icon-btn" title="More options">
+                    <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                  </button>
+                </div>
+            </header>
+            <div id="chat-messages"></div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Message">
+                <button id="chat-send-btn">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Call Views -->
+        <div id="video-call-view" class="view call-view">
+            <video id="remote-video" autoplay playsinline></video>
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="call-overlay">
+                <div id="video-caller-info" class="caller-info">
+                    <img class="avatar" src="" alt="Caller" style="display: none;">
+                    <div class="emoji"></div>
+                    <div class="name"></div>
+                    <div class="status"></div>
+                </div>
+                <div class="call-controls">
+                    <button id="end-video-call-btn" class="end-call-btn">
+                        <svg fill="white" viewBox="0 0 24 24" width="36" height="36"><path d="M12 9c-1.6 0-3.15.25-4.63.72L12 14.29l4.63-4.57A9.94 9.94 0 0 0 12 9zm7.36-1.56a14.33 14.33 0 0 1-1.39 1.39L12 14.77l-5.97-5.94a14.33 14.33 0 0 1-1.39-1.39A10.05 10.05 0 0 1 12 7c2.18 0 4.23.7 5.95 1.88l-1.42 1.42C15.4 9.56 13.77 9 12 9c-1.6 0-3.15.25-4.63.72L12 14.29l7.36-7.29zM3.41 1.86L2 3.27l2.91 2.91A14.2 14.2 0 0 0 3.04 7.64L4.4 6.28a12.18 12.18 0 0 1 1.36-1.12L2.01 1.41z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="voice-call-view" class="view call-view">
+            <audio id="remote-audio" autoplay playsinline></audio>
+            <div class="call-overlay">
+                <div id="voice-caller-info" class="caller-info">
+                    <img class="avatar" src="" alt="Caller" style="display: none;">
+                    <div class="emoji"></div>
+                    <div class="name"></div>
+                    <div class="status"></div>
+                </div>
+                <div class="call-controls">
+                    <button id="end-voice-call-btn" class="end-call-btn">
+                       <svg fill="white" viewBox="0 0 24 24" width="36" height="36"><path d="M12 9c-1.6 0-3.15.25-4.63.72L12 14.29l4.63-4.57A9.94 9.94 0 0 0 12 9zm7.36-1.56a14.33 14.33 0 0 1-1.39 1.39L12 14.77l-5.97-5.94a14.33 14.33 0 0 1-1.39-1.39A10.05 10.05 0 0 1 12 7c2.18 0 4.23.7 5.95 1.88l-1.42 1.42C15.4 9.56 13.77 9 12 9c-1.6 0-3.15.25-4.63.72L12 14.29l7.36-7.29zM3.41 1.86L2 3.27l2.91 2.91A14.2 14.2 0 0 0 3.04 7.64L4.4 6.28a12.18 12.18 0 0 1 1.36-1.12L2.01 1.41z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="user-search-modal" class="modal">
+            <div class="modal-content">
+                <h2>Search Users</h2>
+                <div class="search-container">
+                    <input type="text" id="user-search-input" class="search-input" placeholder="Search by name or username...">
+                </div>
+                <div id="search-results" class="search-results"></div>
+                <div class="modal-actions">
+                    <button id="close-search-modal-btn" class="secondary">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="profile-view-modal" class="modal">
+            <div class="modal-content">
+                <h2>Your Profile</h2>
+                <div id="profile-info-display"></div>
+                <div id="profile-edit-form" style="display:none;">
+                    <input type="text" id="edit-display-name" placeholder="Display Name">
+                    <input type="text" id="edit-profile-emoji" maxlength="2" placeholder="Emoji">
+                </div>
+                <div class="modal-actions">
+                    <button id="edit-profile-btn">Edit</button>
+                    <button id="save-profile-changes-btn" style="display:none;">Save</button>
+                </div>
+                <div id="blocked-users-section">
+                    <h3>Blocked Users</h3>
+                    <div id="blocked-users-list" style="max-height: 120px; overflow-y: auto;"></div>
+                </div>
+                <button id="logout-btn" style="margin-top: 15px; background-color: #d93025;">Logout</button>
+                <button id="close-profile-modal-btn" class="secondary">Close</button>
+            </div>
+        </div>
+        
+        <div id="incoming-call-modal" class="modal">
+            <div class="modal-content">
+                <h2>Incoming Call</h2>
+                <div id="incoming-caller-info" class="caller-info">
+                    <img class="avatar" src="" alt="Caller" style="display: none;">
+                    <div class="emoji"></div>
+                    <div class="name"></div>
+                </div>
+                <div class="modal-actions" style="justify-content:space-around; padding: 10px 0;">
+                    <button id="reject-call-btn" class="end-call-btn">Reject</button>
+                    <button id="accept-call-btn" class="accept-call-btn">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="ringtone" loop>
+        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" type="audio/wav">
+    </audio>
+
+    <!-- Firebase v9 Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut,
+            setPersistence,
+            browserLocalPersistence
+        } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { 
+            getDatabase, 
+            ref, 
+            onValue, 
+            onChildAdded,
+            off,
+            get, 
+            set, 
+            update,
+            remove, 
+            push, 
+            query, 
+            orderByChild, 
+            startAt, 
+            endAt, 
+            limitToFirst,
+            serverTimestamp,
+            runTransaction
+        } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVrEG6fMMxcyhrDNf6_Ru_ZJIhILTMvvQ",
+            authDomain: "vaanilink.firebaseapp.com",
+            projectId: "vaanilink",
+            databaseURL: "https://vaanilink-default-rtdb.firebaseio.com",
+            storageBucket: "vaanilink.appspot.com",
+            messagingSenderId: "416935212144",
+            appId: "1:416935212144:web:5d0b8e83704e53b246b0b5"
+        };
+        
+        // --- FIREBASE INITIALIZATION ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // --- GLOBAL STATE ---
+        let currentUser = null, currentChatPartner = null, currentCallData = null;
+        let peerConnection, localStream, remoteStream;
+        const stunServers = { iceServers: [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' } ] };
+        let activeListeners = {}; // To manage and detach listeners
+        
+        // --- UI ELEMENT SELECTORS ---
+        const allViews = document.querySelectorAll('.view');
+        const allContentPanels = document.querySelectorAll('.content-panel');
+        const ringtone = document.getElementById('ringtone');
+        const loader = document.getElementById('loader');
+
+        // --- UTILITY FUNCTIONS ---
+        const showLoader = (show = true) => loader.style.display = show ? 'flex' : 'none';
+        const showView = (viewId) => {
+            allViews.forEach(v => v.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        };
+        const showModal = (modalId, show = true) => { 
+            document.getElementById(modalId).style.display = show ? 'flex' : 'none'; 
+        };
+        const showPanel = (panelId) => {
+            allContentPanels.forEach(p => p.classList.remove('active'));
+            document.getElementById(panelId).classList.add('active');
+            document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+            if(panelId === 'home-content') document.getElementById('nav-home').classList.add('active');
+            if(panelId === 'notifications-content') document.getElementById('nav-notifications').classList.add('active');
+            if(panelId === 'calls-content') document.getElementById('nav-calls').classList.add('active');
+        };
+        const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
+        const detachListener = (key) => {
+            if (activeListeners[key]) {
+                off(activeListeners[key].ref, activeListeners[key].type);
+                delete activeListeners[key];
+            }
+        };
+
+        /**
+         * Creates a DOM element for a user/contact/notification list item.
+         * This function is designed to prevent XSS attacks by not using innerHTML.
+         * @param {object} config - The configuration for the list item.
+         * @returns {HTMLElement} The created list item element.
+         */
+        function createListItem({ data, type }) {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+
+            if (data.photoURL) {
+                const avatar = document.createElement('img');
+                avatar.src = data.photoURL;
+                avatar.className = 'list-item-avatar';
+                avatar.alt = 'Avatar';
+                item.appendChild(avatar);
+            } else {
+                const emoji = document.createElement('div');
+                emoji.className = 'list-item-emoji';
+                emoji.textContent = data.emoji || data.partnerEmoji || '?';
+                item.appendChild(emoji);
+            }
+
+            const details = document.createElement('div');
+            details.className = 'list-item-details';
+
+            const name = document.createElement('div');
+            name.className = 'list-item-name';
+            
+            const subtext = document.createElement('div');
+            subtext.className = 'list-item-subtext';
+
+            details.appendChild(name);
+            details.appendChild(subtext);
+            item.appendChild(details);
+            
+            const actions = document.createElement('div');
+            actions.className = 'list-item-actions';
+            item.appendChild(actions);
+
+            switch(type) {
+                case 'search-result':
+                    name.textContent = data.displayName;
+                    subtext.textContent = `@${data.username}`;
+                    const actionBtn = document.createElement('button');
+                    if (data.isContact) {
+                        actionBtn.textContent = 'Chat';
+                        actionBtn.onclick = () => window.actions.openChatFromSearch(data.uid);
+                    } else {
+                        actionBtn.textContent = 'Add';
+                        actionBtn.onclick = () => window.actions.sendFriendRequestFromSearch(data.uid);
+                    }
+                    actions.appendChild(actionBtn);
+                    break;
+                
+                case 'friend-request-incoming':
+                    item.style.cursor = 'default';
+                    name.textContent = data.displayName;
+                    subtext.textContent = 'Wants to be your friend';
+                    const acceptBtn = document.createElement('button');
+                    acceptBtn.textContent = 'Accept';
+                    acceptBtn.onclick = () => window.actions.handleFriendRequest(data.uid, true);
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.textContent = 'Reject';
+                    rejectBtn.className = 'reject';
+                    rejectBtn.onclick = () => window.actions.handleFriendRequest(data.uid, false);
+                    actions.appendChild(acceptBtn);
+                    actions.appendChild(rejectBtn);
+                    break;
+                
+                case 'friend-request-accepted':
+                    item.style.cursor = 'default';
+                    name.textContent = data.displayName;
+                    subtext.textContent = 'Accepted your friend request';
+                    const dismissBtn = document.createElement('button');
+                    dismissBtn.textContent = 'Dismiss';
+                    dismissBtn.className = 'reject';
+                    dismissBtn.onclick = () => window.actions.dismissNotification(data.uid);
+                    actions.appendChild(dismissBtn);
+                    break;
+
+                case 'contact':
+                    item.onclick = () => openChat(data.uid, data);
+                    name.textContent = data.displayName;
+                    subtext.id = `last-message-${getChatId(currentUser.uid, data.uid)}`;
+                    subtext.textContent = `@${data.username}`;
+                    const unreadBadge = document.createElement('span');
+                    unreadBadge.className = 'badge';
+                    unreadBadge.style.position = 'static';
+                    unreadBadge.style.display = 'none';
+                    unreadBadge.id = `unread-count-${getChatId(currentUser.uid, data.uid)}`;
+                    actions.appendChild(unreadBadge);
+                    break;
+
+                case 'call-log':
+                    name.textContent = `${data.partnerName} (${data.type})`;
+                    subtext.textContent = `${data.status} - ${new Date(data.timestamp).toLocaleString()}`;
+                    break;
+
+                case 'blocked-user':
+                    item.style.backgroundColor = 'transparent';
+                    name.textContent = data.displayName;
+                    subtext.textContent = `@${data.username}`;
+                    const unblockBtn = document.createElement('button');
+                    unblockBtn.textContent = 'Unblock';
+                    unblockBtn.onclick = () => window.actions.unblockUser(data.uid);
+                    actions.appendChild(unblockBtn);
+                    break;
+            }
+            return item;
+        }
+
+        // --- NETWORK STATUS ---
+        const networkStatusEl = document.getElementById('network-status');
+        window.addEventListener('online', () => networkStatusEl.style.display = 'none');
+        window.addEventListener('offline', () => networkStatusEl.style.display = 'block');
+        if (!navigator.onLine) networkStatusEl.style.display = 'block';
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            showLoader();
+            if (user) {
+                try {
+                    const userRef = ref(db, `users/${user.uid}`);
+                    const userSnapshot = await get(userRef);
+                    if (userSnapshot.exists()) {
+                        currentUser = { uid: user.uid, ...userSnapshot.val() };
+                        initializeAppState();
+                        showView('main-view');
+                    } else {
+                        document.getElementById('preview-avatar').src = user.photoURL || 'https://via.placeholder.com/80';
+                        document.getElementById('preview-email').textContent = user.email;
+                        document.getElementById('display-name-input').value = user.displayName || '';
+                        showView('username-setup-view');
+                    }
+                } catch (error) {
+                    console.error("Auth state change error:", error);
+                    document.getElementById('auth-error').textContent = "Failed to load your profile. Check your connection or try again.";
+                    signOut(auth); // Log out on profile load failure
+                    showView('auth-view');
+                }
+            } else {
+                currentUser = null;
+                cleanupAppState();
+                showView('auth-view');
+            }
+            showLoader(false);
+        });
+
+        document.getElementById('google-login-btn').addEventListener('click', async () => {
+            const googleProvider = new GoogleAuthProvider();
+            const errorEl = document.getElementById('auth-error');
+            const loginBtn = document.getElementById('google-login-btn');
+            errorEl.textContent = '';
+            loginBtn.disabled = true;
+
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                console.error('Login error:', error.code, error.message);
+                if (error.code === 'auth/popup-blocked') {
+                    errorEl.textContent = 'Popup blocked by browser. Please allow popups for this site.';
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    errorEl.textContent = 'Login cancelled. Please try again.';
+                } else {
+                    errorEl.textContent = 'An error occurred during sign-in.';
+                }
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+
+        // --- PROFILE SETUP ---
+        let usernameCheckTimeout;
+        let isUsernameAvailable = false;
+
+        document.getElementById('username-input').addEventListener('input', (e) => {
+            clearTimeout(usernameCheckTimeout);
+            // Clear previous errors on new input
+            document.getElementById('username-error').textContent = '';
+            
+            const username = e.target.value.trim().toLowerCase();
+            const statusEl = document.getElementById('username-status');
+            
+            if (username.length < 3) {
+                statusEl.textContent = 'Must be at least 3 characters';
+                statusEl.className = 'username-status username-taken';
+                isUsernameAvailable = false;
+                document.getElementById('create-profile-btn').disabled = true;
+                return;
+            }
+            if (!/^[a-z0-9_]+$/.test(username)) {
+                statusEl.textContent = 'Only lowercase letters, numbers, and _';
+                statusEl.className = 'username-status username-taken';
+                isUsernameAvailable = false;
+                document.getElementById('create-profile-btn').disabled = true;
+                return;
+            }
+
+            statusEl.textContent = 'Checking...';
+            statusEl.className = 'username-status';
+
+            usernameCheckTimeout = setTimeout(() => checkUsernameAvailability(username), 500);
+        });
+
+        async function checkUsernameAvailability(username) {
+            const statusEl = document.getElementById('username-status');
+            try {
+                const snapshot = await get(ref(db, `usernames/${username}`));
+                if (snapshot.exists()) {
+                    statusEl.textContent = 'Username is taken';
+                    statusEl.className = 'username-status username-taken';
+                    isUsernameAvailable = false;
+                } else {
+                    statusEl.textContent = 'Username is available!';
+                    statusEl.className = 'username-status username-available';
+                    isUsernameAvailable = true;
+                }
+                updateCreateButtonState();
+            } catch (error) {
+                console.error('Error checking username:', error);
+                statusEl.textContent = 'Error checking username';
+            }
+        }
+
+        function updateCreateButtonState() {
+            const username = document.getElementById('username-input').value.trim();
+            const displayName = document.getElementById('display-name-input').value.trim();
+            const emoji = document.getElementById('emoji-input').value.trim();
+            document.getElementById('create-profile-btn').disabled = !isUsernameAvailable || !username || !displayName || !emoji;
+        }
+
+        ['display-name-input', 'emoji-input'].forEach(id => document.getElementById(id).addEventListener('input', updateCreateButtonState));
+        document.getElementById('check-username-btn').addEventListener('click', () => checkUsernameAvailability(document.getElementById('username-input').value.trim().toLowerCase()));
+
+        document.getElementById('setup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const createBtn = document.getElementById('create-profile-btn');
+            createBtn.disabled = true;
+            showLoader();
+
+            const username = document.getElementById('username-input').value.trim().toLowerCase();
+            const displayName = document.getElementById('display-name-input').value.trim();
+            const emoji = document.getElementById('emoji-input').value.trim();
+            const errorEl = document.getElementById('username-error');
+            errorEl.textContent = '';
+            
+            if (!isUsernameAvailable || !username || !displayName || !emoji) {
+                errorEl.textContent = 'Please fill out all fields and ensure username is available.';
+                createBtn.disabled = false;
+                showLoader(false);
+                return;
+            }
+
+            try {
+                const user = auth.currentUser;
+                const profileData = {
+                    username, displayName, emoji,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    createdAt: serverTimestamp()
+                };
+
+                const updates = {};
+                updates[`/users/${user.uid}`] = profileData;
+                updates[`/usernames/${username}`] = user.uid;
+                await update(ref(db), updates);
+
+                // This is the critical fix:
+                // After successful profile creation, immediately update the app's state
+                // and navigate to the main view.
+                currentUser = { uid: user.uid, ...profileData };
+                initializeAppState();
+                showView('main-view');
+
+            } catch (error) {
+                console.error('Error creating profile:', error);
+                errorEl.textContent = 'Error creating profile. Please try again.';
+                createBtn.disabled = false;
+            } finally {
+                showLoader(false);
+            }
+        });
+        
+        // --- APP STATE MANAGEMENT ---
+        function initializeAppState() {
+            listenForContacts();
+            listenForFriendRequests();
+            listenForIncomingCalls();
+            listenForUnreadMessages();
+            renderCallLogs();
+        }
+
+        function cleanupAppState() {
+            Object.keys(activeListeners).forEach(detachListener);
+            document.getElementById('contact-list').innerHTML = '';
+            document.getElementById('notification-list').innerHTML = '';
+            document.getElementById('call-log-list').innerHTML = '';
+        }
+
+        // --- USER SEARCH ---
+        let searchTimeout;
+        document.getElementById('search-users-btn').addEventListener('click', () => showModal('user-search-modal', true));
+        document.getElementById('close-search-modal-btn').addEventListener('click', () => showModal('user-search-modal', false));
+
+        document.getElementById('user-search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const queryText = e.target.value.trim().toLowerCase();
+            if (queryText.length < 2) {
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+            searchTimeout = setTimeout(() => searchUsers(queryText), 300);
+        });
+
+        async function searchUsers(searchText) {
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '<p style="text-align:center; padding: 20px;">Searching...</p>';
+
+            try {
+                const usernameQuery = query(ref(db, 'users'), orderByChild('username'), startAt(searchText), endAt(searchText + '\uf8ff'), limitToFirst(10));
+                
+                const users = new Map();
+                const snapshot = await get(usernameQuery);
+                snapshot.forEach(child => {
+                    if (child.key !== currentUser.uid && !users.has(child.key)) {
+                        users.set(child.key, { uid: child.key, ...child.val() });
+                    }
+                });
+
+                displaySearchResults(Array.from(users.values()));
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsEl.innerHTML = '<p style="text-align:center; padding: 20px; color: #d93025;">Search failed.</p>';
+            }
+        }
+
+        function displaySearchResults(users) {
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '';
+            if (users.length === 0) {
+                resultsEl.innerHTML = '<p style="text-align:center; padding: 20px; color: #667781;">No users found.</p>';
+                return;
+            }
+            
+            users.forEach(user => {
+                if (currentUser.blocked && currentUser.blocked[user.uid]) return;
+                
+                const isContact = currentUser.contacts && currentUser.contacts[user.uid];
+                const userEl = createListItem({
+                    data: { ...user, isContact },
+                    type: 'search-result'
+                });
+                resultsEl.appendChild(userEl);
+            });
+        }
+        
+        window.actions = {
+            openChatFromSearch: async (userUid) => {
+                const snapshot = await get(ref(db, `users/${userUid}`));
+                if (snapshot.exists()) {
+                    showModal('user-search-modal', false);
+                    openChat(userUid, snapshot.val());
+                }
+            },
+            sendFriendRequestFromSearch: async (userUid) => {
+                const requestRef = ref(db, `requests/${userUid}/${currentUser.uid}`);
+                const snapshot = await get(requestRef);
+                if (snapshot.exists()) {
+                    alert('Friend request already sent!');
+                    return;
+                }
+                const request = {
+                    displayName: currentUser.displayName,
+                    username: currentUser.username,
+                    emoji: currentUser.emoji,
+                    photoURL: currentUser.photoURL,
+                    type: 'incoming'
+                };
+                await set(requestRef, request);
+                alert('Friend request sent!');
+                document.getElementById('user-search-input').value = '';
+                document.getElementById('search-results').innerHTML = '';
+            },
+            handleFriendRequest: async (fromUid, accepted) => {
+                await remove(ref(db, `requests/${currentUser.uid}/${fromUid}`));
+                const notification = { 
+                    displayName: currentUser.displayName,
+                    username: currentUser.username,
+                    emoji: currentUser.emoji,
+                    photoURL: currentUser.photoURL,
+                    type: accepted ? 'accepted' : 'rejected' 
+                };
+                await set(ref(db, `requests/${fromUid}/${currentUser.uid}`), notification);
+                if (accepted) {
+                    const updates = {};
+                    updates[`users/${currentUser.uid}/contacts/${fromUid}`] = true;
+                    updates[`users/${fromUid}/contacts/${currentUser.uid}`] = true;
+                    await update(ref(db), updates);
+                }
+            },
+            dismissNotification: (notificationId) => remove(ref(db, `requests/${currentUser.uid}/${notificationId}`)),
+            unblockUser: async (uidToUnblock) => {
+                await remove(ref(db, `users/${currentUser.uid}/blocked/${uidToUnblock}`));
+                alert('User unblocked.');
+                // Refresh local user object
+                if (currentUser.blocked) delete currentUser.blocked[uidToUnblock];
+                renderBlockedUsers();
+            }
+        };
+
+        // --- NAVIGATION & MAIN UI ---
+        document.getElementById('nav-home').addEventListener('click', () => showPanel('home-content'));
+        document.getElementById('nav-notifications').addEventListener('click', () => showPanel('notifications-content'));
+        document.getElementById('nav-calls').addEventListener('click', () => showPanel('calls-content'));
+        document.getElementById('menu-btn').addEventListener('click', showProfileModal);
+        document.getElementById('back-to-main-btn').addEventListener('click', () => {
+            showView('main-view');
+            currentChatPartner = null;
+            detachListener('chatMessages');
+        });
+
+        // --- FRIEND SYSTEM & NOTIFICATIONS ---
+        function listenForFriendRequests() {
+            detachListener('friendRequests');
+            const requestsRef = ref(db, `requests/${currentUser.uid}`);
+            activeListeners.friendRequests = { ref: requestsRef, type: 'value' };
+
+            onValue(requestsRef, (snapshot) => {
+                const list = document.getElementById('notification-list');
+                list.innerHTML = '';
+                let incomingRequestCount = 0;
+                
+                if (snapshot.exists()) {
+                    snapshot.forEach(childSnapshot => {
+                        const request = childSnapshot.val();
+                        const fromUid = childSnapshot.key;
+                        if (currentUser.blocked && currentUser.blocked[fromUid]) return;
+
+                        let item = null;
+                        switch (request.type) {
+                            case 'incoming':
+                                incomingRequestCount++;
+                                item = createListItem({
+                                    data: { ...request, uid: fromUid },
+                                    type: 'friend-request-incoming'
+                                });
+                                break;
+                            case 'accepted':
+                                item = createListItem({
+                                    data: { ...request, uid: fromUid },
+                                    type: 'friend-request-accepted'
+                                });
+                                break;
+                        }
+                        if (item) list.appendChild(item);
+                    });
+                }
+                
+                if (list.childElementCount === 0) {
+                    list.innerHTML = '<p style="text-align:center; color: #667781; padding: 40px 20px;">No new updates.</p>';
+                }
+                const badge = document.getElementById('notifications-badge');
+                badge.textContent = incomingRequestCount;
+                badge.style.display = incomingRequestCount > 0 ? 'block' : 'none';
+            });
+        }
+        
+        function listenForContacts() {
+            detachListener('contacts');
+            const contactsRef = ref(db, `users/${currentUser.uid}/contacts`);
+            activeListeners.contacts = { ref: contactsRef, type: 'value' };
+
+            onValue(contactsRef, (snapshot) => {
+                const list = document.getElementById('contact-list');
+                list.innerHTML = '';
+                if (snapshot.exists()) {
+                    snapshot.forEach(childSnapshot => {
+                        const contactUid = childSnapshot.key;
+                        get(ref(db, `users/${contactUid}`)).then(userSnap => {
+                            if (!userSnap.exists()) return;
+                            const contactData = userSnap.val();
+                            const contactItem = createListItem({
+                                data: { ...contactData, uid: contactUid },
+                                type: 'contact'
+                            });
+                            list.appendChild(contactItem);
+                        });
+                    });
+                } else {
+                    list.innerHTML = '<p style="text-align:center; color: #667781; padding: 40px 20px;">Search for friends to start chatting!</p>';
+                }
+            });
+        }
+        
+        // --- MESSAGING ---
+        async function openChat(partnerUid, partnerData) {
+            if (currentUser.blocked && currentUser.blocked[partnerUid]) {
+                alert('This user is blocked. Unblock them to interact.');
+                return;
+            }
+            currentChatPartner = { uid: partnerUid, ...partnerData };
+            const chatId = getChatId(currentUser.uid, partnerUid);
+            
+            // Update header
+            if (partnerData.photoURL) {
+                document.getElementById('chat-header-avatar').src = partnerData.photoURL;
+                document.getElementById('chat-header-avatar').style.display = 'block';
+                document.getElementById('chat-header-emoji').style.display = 'none';
+            } else {
+                document.getElementById('chat-header-emoji').textContent = partnerData.emoji;
+                document.getElementById('chat-header-emoji').style.display = 'flex';
+                document.getElementById('chat-header-avatar').style.display = 'none';
+            }
+            document.getElementById('chat-header-name').textContent = partnerData.displayName;
+            document.getElementById('chat-messages').innerHTML = '';
+            
+            // Clear unread count on chat open
+            await set(ref(db, `unreadCounts/${currentUser.uid}/${chatId}`), null);
+            
+            // Listen for messages
+            detachListener('chatMessages');
+            const messagesRef = query(ref(db, `messages/${chatId}`), limitToFirst(50));
+            activeListeners.chatMessages = { ref: messagesRef, type: 'child_added' };
+            onChildAdded(messagesRef, (snapshot) => {
+                const msg = snapshot.val();
+                const div = document.createElement('div');
+                div.textContent = msg.text;
+                div.className = 'message-bubble ' + (msg.sender === currentUser.uid ? 'message-sent' : 'message-received');
+                const chatMessagesEl = document.getElementById('chat-messages');
+                chatMessagesEl.appendChild(div);
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            });
+            showView('chat-view');
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentChatPartner) return;
+            
+            // Re-fetch partner data to check if you've been blocked just before sending
+            const partnerSnapshot = await get(ref(db, `users/${currentChatPartner.uid}`));
+            if (partnerSnapshot.exists()) {
+                const partnerData = partnerSnapshot.val();
+                 if (partnerData.blocked && partnerData.blocked[currentUser.uid]) {
+                    alert("You have been blocked by this user.");
+                    return;
+                }
+            }
+            
+            const chatId = getChatId(currentUser.uid, currentChatPartner.uid);
+            try {
+                await push(ref(db, `messages/${chatId}`), {
+                    text,
+                    sender: currentUser.uid,
+                    timestamp: serverTimestamp()
+                });
+                await runTransaction(ref(db, `unreadCounts/${currentChatPartner.uid}/${chatId}`), count => (count || 0) + 1);
+                input.value = '';
+                input.style.height = 'auto'; // Reset height after sending
+            } catch (error) {
+                console.error("Failed to send message:", error);
+                alert("Message could not be sent.");
+            }
+        }
+        document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function listenForUnreadMessages() {
+            detachListener('unreadCounts');
+            const unreadRef = ref(db, `unreadCounts/${currentUser.uid}`);
+            activeListeners.unreadCounts = { ref: unreadRef, type: 'value' };
+
+            onValue(unreadRef, (snapshot) => {
+                let totalUnread = 0;
+                document.querySelectorAll('#contact-list .badge').forEach(b => {
+                    b.style.display = 'none';
+                    b.textContent = '0';
+                });
+
+                if (snapshot.exists()) {
+                    snapshot.forEach(chatSnap => {
+                        const count = chatSnap.val();
+                        if (count > 0) {
+                            totalUnread += count;
+                            const unreadElem = document.getElementById(`unread-count-${chatSnap.key}`);
+                            if (unreadElem) {
+                                unreadElem.textContent = count;
+                                unreadElem.style.display = 'block';
+                            }
+                        }
+                    });
+                }
+                
+                const badge = document.getElementById('home-badge');
+                badge.textContent = totalUnread;
+                badge.style.display = totalUnread > 0 ? 'block' : 'none';
+            });
+        }
+        
+        // --- WEBRTC CALLING ---
+        async function requestMediaPermissions(video, audio) {
+            try {
+                return await navigator.mediaDevices.getUserMedia({ video, audio });
+            } catch (error) {
+                console.error("Media permission error:", error.name, error.message);
+                let message = "Could not access media devices.";
+                if (error.name === "NotAllowedError") {
+                    message = "Permission denied. Please allow camera and microphone access in your browser settings to make calls.";
+                } else if (error.name === "NotFoundError") {
+                    message = "No camera or microphone found. Please connect a device and try again.";
+                }
+                alert(message);
+                return null;
+            }
+        }
+        
+        document.getElementById('video-call-btn').addEventListener('click', () => startCall(true));
+        document.getElementById('voice-call-btn').addEventListener('click', () => startCall(false));
+
+        async function startCall(isVideo) {
+            if (!currentChatPartner || (currentUser.blocked && currentUser.blocked[currentChatPartner.uid])) {
+                alert('You cannot call this user.');
+                return;
+            }
+
+            localStream = await requestMediaPermissions(isVideo, true);
+            if (!localStream) return;
+            
+            const callId = push(ref(db, 'calls')).key;
+            currentCallData = {
+                id: callId,
+                isVideo,
+                caller: { uid: currentUser.uid, displayName: currentUser.displayName, username: currentUser.username, emoji: currentUser.emoji, photoURL: currentUser.photoURL },
+                calleeId: currentChatPartner.uid
+            };
+            
+            if (isVideo) document.getElementById('local-video').srcObject = localStream;
+            
+            peerConnection = new RTCPeerConnection(stunServers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection.onicecandidate = e => e.candidate && set(push(ref(db, `iceCandidates/${callId}/caller`)), e.candidate.toJSON());
+            peerConnection.ontrack = e => document.getElementById(isVideo ? 'remote-video' : 'remote-audio').srcObject = e.streams[0];
+            
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            
+            await set(ref(db, `calls/${currentCallData.calleeId}`), { ...currentCallData, offer: { type: offer.type, sdp: offer.sdp } });
+            
+            listenForCallAnswer(callId);
+            showCallUI(isVideo, 'Calling...');
+        }
+        
+        function listenForCallAnswer(callId) {
+            const callRef = ref(db, `calls/${currentCallData.calleeId}`);
+            onValue(callRef, async (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.answer && peerConnection.signalingState !== "stable") {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    listenForRemoteIceCandidates(callId, 'callee');
+                    updateCallStatus('Connected');
+                } else if (!data) { // Call rejected or ended remotely
+                    endCall('ended');
+                }
+            }, { onlyOnce: true }); // We only need the answer once.
+        }
+        
+        function listenForIncomingCalls() {
+            detachListener('incomingCalls');
+            const callsRef = ref(db, `calls/${currentUser.uid}`);
+            activeListeners.incomingCalls = { ref: callsRef, type: 'value' };
+
+            onValue(callsRef, async (snapshot) => {
+                const callData = snapshot.val();
+                if (callData && !currentCallData) { // New incoming call
+                    if (currentUser.blocked && currentUser.blocked[callData.caller.uid]) {
+                        remove(ref(db, `calls/${currentUser.uid}`)); // Silently reject
+                        return;
+                    }
+                    currentCallData = callData;
+                    const callerInfo = document.getElementById('incoming-caller-info');
+                    if (callData.caller.photoURL) {
+                        callerInfo.querySelector('.avatar').src = callData.caller.photoURL;
+                        callerInfo.querySelector('.avatar').style.display = 'block';
+                        callerInfo.querySelector('.emoji').style.display = 'none';
+                    } else {
+                        callerInfo.querySelector('.emoji').textContent = callData.caller.emoji;
+                        callerInfo.querySelector('.emoji').style.display = 'block';
+                        callerInfo.querySelector('.avatar').style.display = 'none';
+                    }
+                    callerInfo.querySelector('.name').textContent = `${callData.caller.displayName}`;
+                    showModal('incoming-call-modal');
+                    ringtone.play();
+                }
+            });
+        }
+        
+        document.getElementById('accept-call-btn').addEventListener('click', async () => {
+            showModal('incoming-call-modal', false);
+            ringtone.pause();
+            ringtone.currentTime = 0;
+            
+            const { isVideo, id: callId, offer } = currentCallData;
+            localStream = await requestMediaPermissions(isVideo, true);
+            if (!localStream) {
+                cleanupCall();
+                return;
+            }
+            
+            if (isVideo) document.getElementById('local-video').srcObject = localStream;
+            
+            peerConnection = new RTCPeerConnection(stunServers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection.onicecandidate = e => e.candidate && set(push(ref(db, `iceCandidates/${callId}/callee`)), e.candidate.toJSON());
+            peerConnection.ontrack = e => document.getElementById(isVideo ? 'remote-video' : 'remote-audio').srcObject = e.streams[0];
+            
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            await update(ref(db, `calls/${currentUser.uid}`), { answer: { type: answer.type, sdp: answer.sdp } });
+            
+            listenForRemoteIceCandidates(callId, 'caller');
+            showCallUI(isVideo, 'Connected');
+        });
+        
+        document.getElementById('reject-call-btn').addEventListener('click', () => {
+            showModal('incoming-call-modal', false);
+            ringtone.pause();
+            ringtone.currentTime = 0;
+            logCall('rejected');
+            if (currentCallData) {
+                remove(ref(db, `calls/${currentUser.uid}`));
+            }
+            currentCallData = null;
+        });
+        
+        function listenForRemoteIceCandidates(callId, role) {
+            const iceRef = ref(db, `iceCandidates/${callId}/${role}`);
+            onChildAdded(iceRef, s => {
+                if (s.exists() && peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(s.val()));
+            });
+        }
+        
+        function showCallUI(isVideo, status) {
+            const viewId = isVideo ? 'video-call-view' : 'voice-call-view';
+            const callerInfo = document.getElementById(isVideo ? 'video-caller-info' : 'voice-caller-info');
+            const partner = currentCallData.caller.uid === currentUser.uid ? currentChatPartner : currentCallData.caller;
+            
+            if (partner.photoURL) {
+                callerInfo.querySelector('.avatar').src = partner.photoURL;
+                callerInfo.querySelector('.avatar').style.display = 'block';
+                callerInfo.querySelector('.emoji').style.display = 'none';
+            } else {
+                callerInfo.querySelector('.emoji').textContent = partner.emoji;
+                callerInfo.querySelector('.emoji').style.display = 'block';
+                callerInfo.querySelector('.avatar').style.display = 'none';
+            }
+            callerInfo.querySelector('.name').textContent = partner.displayName;
+            callerInfo.querySelector('.status').textContent = status;
+            showView(viewId);
+        }
+        
+        function updateCallStatus(status) {
+            const viewId = currentCallData.isVideo ? 'video-call-view' : 'voice-call-view';
+            const statusElem = document.querySelector(`#${viewId} .status`);
+            if (statusElem) statusElem.textContent = status;
+        }
+        
+        document.getElementById('end-video-call-btn').addEventListener('click', () => endCall('ended'));
+        document.getElementById('end-voice-call-btn').addEventListener('click', () => endCall('ended'));
+        
+        function endCall(status) {
+            logCall(status);
+            cleanupCall();
+        }
+        
+        function cleanupCall() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (currentCallData) {
+                const otherUserId = currentCallData.caller.uid === currentUser.uid ? currentCallData.calleeId : currentCallData.caller.uid;
+                remove(ref(db, `calls/${otherUserId}`));
+                remove(ref(db, `calls/${currentUser.uid}`));
+                remove(ref(db, `iceCandidates/${currentCallData.id}`));
+            }
+            currentCallData = null;
+            showView('main-view');
+        }
+        
+        function logCall(status) {
+            if (!currentCallData) return;
+            const isCaller = currentCallData.caller.uid === currentUser.uid;
+            const partner = isCaller ? currentChatPartner : currentCallData.caller;
+            if (!partner) return;
+            
+            push(ref(db, `callLogs/${currentUser.uid}`), {
+                partnerName: partner.displayName,
+                partnerUsername: partner.username,
+                partnerEmoji: partner.emoji,
+                partnerPhoto: partner.photoURL || null,
+                type: currentCallData.isVideo ? 'video' : 'voice',
+                status, 
+                timestamp: serverTimestamp()
+            });
+        }
+        
+        function renderCallLogs() {
+            detachListener('callLogs');
+            const logsQuery = query(ref(db, `callLogs/${currentUser.uid}`), orderByChild('timestamp'), limitToLast(30));
+            activeListeners.callLogs = { ref: logsQuery, type: 'value' };
+            const list = document.getElementById('call-log-list');
+
+            onValue(logsQuery, (snapshot) => {
+                list.innerHTML = '';
+                if (!snapshot.exists()) {
+                    list.innerHTML = '<p style="text-align:center; color: #667781; padding: 40px 20px;">No recent calls.</p>';
+                    return;
+                }
+                const logs = [];
+                snapshot.forEach(child => logs.push(child.val()));
+                logs.reverse().forEach(log => {
+                    const logItem = createListItem({ data: log, type: 'call-log' });
+                    list.appendChild(logItem);
+                });
+            });
+        }
+        
+        // --- PROFILE MODAL & BLOCKING ---
+        function showProfileModal() {
+            const profileDisplay = document.getElementById('profile-info-display');
+            profileDisplay.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" style="width: 80px; height: 80px; border-radius: 50%;" alt="Avatar">` : `<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #ccc; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 40px;">${currentUser.emoji}</div>`}
+                </div>
+                <p><strong>Display Name:</strong> <span id="profile-modal-dn"></span></p>
+                <p><strong>Username:</strong> <span id="profile-modal-un"></span></p>
+                <p><strong>Emoji:</strong> <span id="profile-modal-em"></span></p>`;
+            
+            // Safely set text content
+            document.getElementById('profile-modal-dn').textContent = currentUser.displayName;
+            document.getElementById('profile-modal-un').textContent = `@${currentUser.username}`;
+            document.getElementById('profile-modal-em').textContent = currentUser.emoji;
+
+            document.getElementById('edit-display-name').value = currentUser.displayName;
+            document.getElementById('edit-profile-emoji').value = currentUser.emoji;
+            document.getElementById('profile-info-display').style.display = 'block';
+            document.getElementById('profile-edit-form').style.display = 'none';
+            document.getElementById('edit-profile-btn').style.display = 'inline-block';
+            document.getElementById('save-profile-changes-btn').style.display = 'none';
+            
+            renderBlockedUsers();
+            showModal('profile-view-modal');
+        }
+        
+        document.getElementById('close-profile-modal-btn').addEventListener('click', () => showModal('profile-view-modal', false));
+        
+        document.getElementById('edit-profile-btn').addEventListener('click', () => {
+            document.getElementById('profile-info-display').style.display = 'none';
+            document.getElementById('profile-edit-form').style.display = 'block';
+            document.getElementById('edit-profile-btn').style.display = 'none';
+            document.getElementById('save-profile-changes-btn').style.display = 'inline-block';
+        });
+        
+        document.getElementById('save-profile-changes-btn').addEventListener('click', async () => {
+            const displayName = document.getElementById('edit-display-name').value.trim();
+            const emoji = document.getElementById('edit-profile-emoji').value.trim();
+            if (!displayName || !emoji) return alert('Display name and emoji are required.');
+            
+            await update(ref(db, `users/${currentUser.uid}`), { displayName, emoji });
+            currentUser.displayName = displayName;
+            currentUser.emoji = emoji;
+            showProfileModal(); // Refresh modal view
+        });
+        
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth);
+            showModal('profile-view-modal', false);
+        });
+        
+        document.getElementById('chat-more-btn').addEventListener('click', () => {
+            if (!currentChatPartner) return;
+            if (confirm(`Are you sure you want to block ${currentChatPartner.displayName}? This will also remove them from your contacts.`)) {
+                blockUser(currentChatPartner.uid);
+            }
+        });
+        
+        async function blockUser(uidToBlock) {
+            const updates = {};
+            updates[`users/${currentUser.uid}/blocked/${uidToBlock}`] = true;
+            updates[`users/${currentUser.uid}/contacts/${uidToBlock}`] = null;
+            updates[`users/${uidToBlock}/contacts/${currentUser.uid}`] = null;
+            await update(ref(db), updates);
+            alert('User blocked and removed from contacts.');
+            // Update local state
+            if (!currentUser.blocked) currentUser.blocked = {};
+            currentUser.blocked[uidToBlock] = true;
+            if (currentUser.contacts) delete currentUser.contacts[uidToBlock];
+
+            showView('main-view');
+        }
+        
+        async function renderBlockedUsers() {
+            const list = document.getElementById('blocked-users-list');
+            list.innerHTML = '';
+            // Use local state first for responsiveness
+            if (!currentUser.blocked || Object.keys(currentUser.blocked).length === 0) {
+                list.innerHTML = '<p style="font-size:12px; text-align:center; color: #667781;">No users blocked.</p>';
+                return;
+            }
+            
+            for (const uid of Object.keys(currentUser.blocked)) {
+                const userSnap = await get(ref(db, `users/${uid}`));
+                if (userSnap.exists()) {
+                    const user = userSnap.val();
+                    const item = createListItem({ 
+                        data: { ...user, uid }, 
+                        type: 'blocked-user' 
+                    });
+                    list.appendChild(item);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
